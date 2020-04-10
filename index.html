@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>购物车</title>
+    <link rel="stylesheet" href="./vendors/bootstrap/css/bootstrap.min.css">
+    <style>
+        .title {
+            height: 60px;
+            background-color: skyblue;
+            text-align: center;
+        }
+        
+        .title h1 {
+            line-height: 60px;
+        }
+        
+        .main .item {
+            border-bottom: 1px solid blue;
+            height: 80px;
+            max-width: 100%;
+            /* position: relative; */
+            overflow: hidden;
+        }
+        
+        .item .logo {
+            height: 80px;
+        }
+        
+        .item .logo img {
+            max-height: 100%;
+        }
+        
+        .item .item_title {
+            line-height: 80px;
+        }
+        
+        .item .change_item {
+            display: inline-block;
+            max-height: 100%;
+            padding: 24px 0px;
+        }
+        
+        .change_item .edit_num {
+            width: 60%;
+            text-align: center;
+            display: inline-block;
+            height: 34px;
+            padding: 6px 12px;
+            font-size: 14px;
+            line-height: 1.42857143;
+            color: #555;
+            background-color: #fff;
+            background-image: none;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            -webkit-box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075);
+            box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075);
+            -webkit-transition: border-color ease-in-out .15s, -webkit-box-shadow ease-in-out .15s;
+            -o-transition: border-color ease-in-out .15s, box-shadow ease-in-out .15s;
+            transition: border-color ease-in-out .15s, box-shadow ease-in-out .15s;
+        }
+        
+        .item .del_item {
+            padding: 24px 0px;
+        }
+        
+        .del_item button {
+            float: right;
+        }
+        
+        .footer {
+            padding: 5px;
+            background-color: rgb(250, 250, 120);
+            overflow: hidden;
+            line-height: 46px;
+        }
+        
+        .footer .total {
+            font-size: 18px;
+            color: red;
+            font-weight: 700;
+        }
+        
+        .footer button {
+            float: right;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app">
+        <!-- 这里不能使用驼峰式标签 -->
+        <cart-list :list='list' :uname='uname'></cart-list>
+    </div>
+
+</body>
+<script src="./js/vue.js"></script>
+<!-- 模块化开发 -->
+<script>
+    var CartTitle = {
+        props: ['uname'],
+        template: `
+        <div class="title">
+            <p>
+                <h1>{{uname}}商品</h1>
+            </p>
+        </div>`,
+    };
+    var CartMain = {
+        props: ['list'],
+        template: `
+            <div class="main">
+                <div class="item" :keys='item.id' v-for = 'item in list' >
+                    <div class="logo col-lg-2">
+                        <img :src="item.img" alt="">
+                    </div>
+                    <div class="col-lg-5 item_title">
+                        <p>{{item.name}}</p>
+                    </div>
+                    <div class="change_item col-lg-2">
+                        <button v-if='item.num >0' class="btn btn-default" @click="sub(item.id,$event)">-</button>
+                        <button v-else class="btn btn-default" @click="sub(item.id,$event)" :disabled='false'>-</button>
+                        <input type="text" class="edit_num" :value="item.num" @blur="changeNum(item.id,$event)">
+                        <button class="btn btn-default" @click="add(item.id,$event)">+</button>
+
+                    </div>
+                    <div class="del_item col-lg-3">
+                        <button class="btn btn-default" @click="del(item.id)">X</button>
+                    </div>
+                </div>
+            </div>`,
+        methods: {
+            //输入框失去焦点触发
+            changeNum: function(val, event) {
+                // console.log(event.target.value);
+                this.$emit("change-num", {
+                    id: val,
+                    num: event.target.value,
+                    type: "edit",
+                });
+            },
+            //点击减号
+            sub: function(val, event) {
+                this.$emit("change-num", {
+                    id: val,
+                    num: event.target.value,
+                    type: "sub",
+                });
+            },
+            //点击加号
+            add: function(val, event) {
+                this.$emit("change-num", {
+                    id: val,
+                    num: event.target.value,
+                    type: "add",
+                });
+            },
+            //点击删除
+            del: function(val) {
+                this.$emit("delCart", {
+                    id: val,
+                });
+            }
+        },
+    };
+    var CartFooter = {
+        props: ['list'],
+        template: `
+        <div class="footer text-center">
+            <span class="total">总价：{{cartTotal}}</span>
+            <button class="btn btn-danger btn-lg">结算</button>
+        </div>`,
+        computed: {
+            cartTotal: function() {
+                var total = 0;
+                this.list.forEach(item => {
+                    total += item.num * item.price;
+                });
+                return total;
+            }
+        },
+    };
+    Vue.component("cart-list", {
+        props: ['list', 'uname'],
+        components: {
+            //驼峰式命名------等价于cart-title
+            'cartTitle': CartTitle,
+            'cartMain': CartMain,
+            'cartFooter': CartFooter,
+        },
+        //template这里可以使用驼峰式标签
+        template: `
+        <div class="container">
+            <cart-title :uname='uname'></cart-title>
+            <cartMain :list='list' @change-num="changeNum($event)" @delCart='delcart($event)'></cartMain>
+            <cartFooter :list='list'></cartFooter>
+        </div>`,
+        methods: {
+            changeNum: function(items) {
+                //通过输入框修改数量
+                if (items.type == 'edit') {
+                    this.list.some(item => {
+                        if (item.id == items.id) {
+                            item.num = items.num;
+                            return true;
+                        }
+                    });
+                } else if (items.type == "sub") {
+                    this.list.some(item => {
+                        if (item.id == items.id) {
+                            if (item.num > 0) {
+                                item.num -= 1;
+                            } else {
+                                item.num = 0;
+                            }
+                            return true;
+                        }
+                    });
+                } else if (items.type == 'add') {
+                    this.list.some(item => {
+                        if (item.id == items.id) {
+                            item.num += 1;
+                            return true;
+                        }
+                    });
+                }
+
+            },
+            delcart: function(items) {
+                let index = this.list.findIndex(item => item.id == items.id);
+                this.list.splice(index, 1);
+            }
+        },
+
+    });
+    var vm = new Vue({
+        el: "#app",
+        data: {
+            uname: "linncy",
+            list: [{
+                id: 1,
+                name: '苹果',
+                price: 1000,
+                num: 1,
+                img: 'img/apple.jpg'
+            }, {
+                id: 2,
+                name: '柠檬',
+                price: 1000,
+                num: 1,
+                img: "./img/lemon.jpg"
+            }, {
+                id: 3,
+                name: '西瓜',
+                price: 1000,
+                num: 1,
+                img: "./img/siguo.jpg"
+            }, {
+                id: 4,
+                name: '猕猴桃',
+                price: 1000,
+                num: 1,
+                img: "./img/taozi.jpg"
+            }],
+        },
+    });
+</script>
+
+</html>
